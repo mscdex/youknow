@@ -16,7 +16,7 @@ for (var i=0; i<frontends.length; i++) {
       else if (level === LOG.INFO)
         console.log(name.toUpperCase() + ' :: INFO :: ' + msg);
     });
-  )(frontends[i]);
+  })(frontends[i]);
   frontends[i].init();
   console.log('MAIN :: INFO :: Initialized frontend: ' + frontends[i].name);
 }
