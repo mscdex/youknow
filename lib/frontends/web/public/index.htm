@@ -1,17 +1,169 @@
 <html>
-	<head>
-		<title>youknow</title>
-		<script type="text/javascript" src="flashws.js"></script>
+  <head>
+    <title>youknow</title>
+    <script type="text/javascript" src="flashws.js"></script>
     <script type="text/javascript" src="transport.js"></script>
-		<script type="text/javascript">
-      address = '127.0.0.1:8000';
-      conn = initTransport(function() {
-          // connected cb
+    <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
+    <script type="text/javascript">
+      var address = '127.0.0.1:8000', callback, players = {}, me, imgBack = 'images/back.png', inGame = false, isWild = false;
+
+      /* Game functions */
+      function addPlayer(p) {
+        players[p.id] = p;
+        $('#players').append('<div class="player ' + p.type.toLowerCase() + '" id="player-' + p.id + '">' + p.name + '<div class="cardcount"></div></div>');
+      }
+      function delPlayer(p) {
+        delete players[p.id];
+        $('#player-' + p.id).remove();
+      }
+      function cardToImage(card) {
+        if (card[0] < 4)
+          return 'images/' + card[0] + '_' + card[1] + '.png';
+        else
+          return 'images/' + card[0] + '.png';
+      }
+      function colorToText(color) {
+        var text;
+        if (color === 0)
+          text = 'blue';
+        else if (color === 1)
+          text = 'green';
+        else if (color === 2)
+          text = 'red';
+        else if (color === 3)
+          text = 'yellow';
+        return text;
+      }
+      function cardToText(card) {
+        var text;
+        if (card[0] < 4) {
+          text = colorToText(card[0]);
+
+          if (card[1] < 10)
+            text += ' ' + card[1];
+          else if (card[1] === 10)
+            text += ' draw 2';
+          else if (card[1] === 11)
+            text += ' reverse';
+          else if (card[1] === 12)
+            text += ' skip';
+        } else if (card[0] === 4)
+          text = 'Wild';
+        else if (card[0] === 5)
+          text = 'Wild Draw 4';
+        return text;
+      }
+      function reset() {
+        isWild = inGame = false;
+        $('.playingarea').hide();
+        $('#players, #hand').empty();
+        $('#piles, #pass').hide();
+        players = {};
+        me = callback = undefined;
+      }
+      function handleEvent(res) {
+        if (res.event === 'playerjoin') {
+          addPlayer(res.player);
+          status(res.player.name + ' joined the game');
+        } else if (res.event === 'playerquit') {
+          delete players[res.player.id];
+          $('#player-' + res.player.id).remove();
+          if (res.newOwner)
+            $('#player-' + res.newOwner.id).addClass('owner');
+        } else if (res.event === 'start') {
+          if (res.roundWinner)
+            status(res.roundWinner.name + ' won this round. Next round started ...');
+          else {
+            inGame = true;
+            status('Game started');
+          }
+
+          $('#discard img').attr('src', cardToImage(res.topCard));
+
+          $('.turn').removeClass('turn');
+          $('#player-' + res.startPlayer.id).addClass('turn');
+
+          for (var i=0,len=res.hand.length; i<len; ++i)
+            $('#hand').append('<img src="' + cardToImage(res.hand[i]) + '" />');
+
+          $('#piles, #hand').show();
+        } else if (res.event === 'play') {
+          var msg = res.player.name + ' played a ' + cardToText(res.card);
+          $('#discard img').attr('src', cardToImage(res.card));
+          if (typeof res.wildColor !== 'undefined') {
+            isWild = true;
+            $('#wildColor').css('class', 'wildColor' + res.wildColor).show();
+          } else {
+            if (isWild) {
+              isWild = false;
+              $('#wildColor').hide();
+            }
+          }
+          status(msg);
+        } else if (res.event === 'end') {
+          status('Game ended' + (res.player ? '. Game winner: ' + res.player.name : ''));
+          reset();
+        } else if (res.event === 'turn') {
+          $('.turn').removeClass('turn');
+          $('#player-' + res.player.id).addClass('turn');
+        } else if (res.event === 'draw') {
+          var who = res.player.name;
+          if (res.drawnCards) {
+            who = 'You';
+            // add card(s) to hand
+            for (var i=0,len=res.drawnCards.length; i<len; ++i)
+              $('#hand').append('<img src="' + cardToImage(res.drawnCards[i]) + '" />');
+          }
+          status(who + ' drew ' + res.numCards + ' card' + (res.numCards > 1 ? 's' : ''));
+        } else if (res.event === 'pass') {
+          status(res.player.name + ' passed');
+        } else if (res.event === 'youknow') {
+          status(res.player.name + ' has one card left!');
+        } else {
+          log('Received unexpected event \'' + res.event + '\': ' + data);
+        }
+      }
+
+      /* Utility/Connection functions */
+      function fnEmpty() {}
+      function log(text) {
+        $('#log').append(text + '<br />');
+      }
+      function status(text) {
+        $('#status').html(text);
+      }
+      function send(text, cb) {
+        callback = cb;
+        var ret = conn.send(text);
+        if (typeof ret === 'string')
+          log('Error while sending data: ' + ret);
+        /*else
+          log('Sent: ' + text);*/
+      }
+
+      var conn = initTransport(function() {
           log('Connected!');
         },
         function(data) {
-          // data cb
           log('Received: ' + data);
+          var res;
+          try {
+            res = JSON.parse(data);
+          } catch (e) {
+            log('Received malformed JSON (' + e + '): ' + data);
+            return;
+          }
+          if (res.event)
+            handleEvent(res);
+          else if (callback) {
+            if (res.error)
+              alert('Error: ' + res.error);
+            else
+              callback(res.ret);
+            callback = undefined;
+          }
+          else
+            log('Received unexpected response: ' + data);
         }, function() {
           // disconnected cb
           log('Lost connection with the server');
@@ -19,34 +171,140 @@
           // error cb
           log('Unexpected error while communicating with server: ' + msg);
       });
-      if (!conn.connect)
+      if (!conn.connect) {
+        $('#ui :input').attr('disabled', 'disabled');
         alert('Sorry, you are using an unsupported browser.');
+      } else {
+        /* Preload card assets */
+        for (var i=0; i<4; ++i)
+          for (var j=0; j<13; ++j)
+            $('<img/>')[0].src = 'images/' + i + '_' + j + '.png';
+        $('<img/>')[0].src = 'images/4.png';
+        $('<img/>')[0].src = 'images/5.png';
+        $('<img/>')[0].src = imgBack;
 
-      function log(text) {
-        document.getElementById('log').innerHTML += text + '<br />';
+        $(function() {
+          /* Some other initialization stuff */
+          $('#btnConnect').click(function() { conn.connect(address); });
+          $('#btnRegister').click(function() {
+            var name;
+            if (name = prompt('Enter a nickname to use:')) {
+              send('register ' + name, fnEmpty);
+            }
+          });
+          $('#btnCreate').click(function() {
+            var gameName = prompt('Enter new game name (blank to autogenerate):');
+            if (typeof gameName === 'string') {
+              send('create' + (gameName.length > 0 ? ' ' + gameName : ''), function(res) {
+                $('.playingarea').show();
+                me = res.me;
+                status('Created game: ' + res.gameName);
+              });
+            }
+          });
+          $('#btnStart').click(function() {
+            send('start', fnEmpty);
+          });
+          $('#btnJoin').click(function() {
+            var gameName;
+            if (gameName = prompt('Join which game?')) {
+              send('join ' + gameName, function(res) {
+                $('.playingarea').show();
+                me = res.me;
+                if (res.players)
+                  for (var i=0,len=res.players.length; i<len; ++i)
+                    addPlayer(res.players[i]);
+                status('Joined game: ' + gameName);
+              });
+            }
+          });
+          $('#btnLeave').click(function() {
+            send('leave', function() {
+              reset();
+            });
+          });
+          $('#btnDisconnect').click(function() { conn.disconnect(); });
+
+          $('#draw').click(function() {
+            send('draw', function() {
+              $('#pass').show();
+            });
+          });
+          $('#pass').click(function() {
+            send('pass', function () {
+              status('You passed');
+              $('#pass').hide();
+            });
+          });
+          $('#hand img').live('click', function() {
+            var idx = $(this).index();
+            // check for wild card first
+            send('play ' + idx, function() {
+              $(this).remove();
+              $('#pass').hide();
+              if (inGame)
+                status('You played a card');
+            });
+          });
+        });
       }
-      function send() {
-        var text = document.getElementById('text').value,
-            ret = conn.send(text);
-        if (typeof ret === 'string')
-          log('Error while sending data: ' + ret);
-        else
-          log('Sent: ' + text);
-      }
-		</script>
-		<style type="text/css">
-			input, a { margin-right: 15px; }
-			.input, .log { border: 1px solid black; }
-			.log { padding: 10px; margin-bottom: 30px; }
-		</style>
-	</head>
-	<body>
-		<form onsubmit="return false">
-      <input type="button" value="Connect" onclick="conn.connect(address); return false;" />
-      <input type="text" id="text" class="input">
-      <input type="button" value="Send" onclick="send(); return false;" />
-      <input type="button" value="Disconnect" onclick="conn.disconnect(); return false;" />
-		</form>
-		<div id="log" class="log"></div>
-	</body>
+    </script>
+    <style type="text/css">
+      input, a { margin-right: 15px; }
+      .input, .log { border: 1px solid black; }
+      .log { padding: 10px; margin-bottom: 30px; }
+
+      .playingarea, #piles, #pass, #hand { display: none; clear: both; }
+      #piles { text-align: center; margin-left: auto; margin-right: auto; }
+      #draw img { border: 1px solid black; }
+      #hand img, #draw, #discard, #pass { float: left; }
+      #wildColor, #colorchooser div { width: 40px, height: 40px, border: 1px solid black; float: left; }
+      #colorchooser { border: 1px solid #999999; float: left; display: none; }
+      #wildColor, #pass { display: none; }
+      #pass { cursor: pointer; padding: 30px; border: 2px solid black; background-color: #CCCCCC; color: black; }
+
+      .wildColor0 { background-color: blue; }
+      .wildColor1 { background-color: green; }
+      .wildColor2 { background-color: red; }
+      .wildColor3 { background-color: yellow; }
+
+      #players { clear: both; margin-bottom: 20px; }
+
+      .player { border: 1px solid black; float: left; }
+      .owner { border: 3px solid blue; }
+      .turn { border: 3px solid green; }
+    </style>
+  </head>
+  <body>
+    <div id="status"></div>
+    <div class="playingarea">
+      <div id="players"></div>
+      <div id="piles">
+        <div id="draw"><img src="images/back.png" /></div>
+        <div id="discard"><img /></div>
+        <div id="wildColor">&nbsp;</div>
+      </div>
+      <div id="hand"></div>
+      <div id="pass">PASS</div>
+    </div>
+    <div id="colorchooser">
+      <div class="wildColor0">&nbsp;</div>
+      <div class="wildColor1">&nbsp;</div>
+      <div class="wildColor2">&nbsp;</div>
+      <div class="wildColor3">&nbsp;</div>
+    </div>
+    <hr style="clear: both" />
+    <form id="ui" onsubmit="return false">
+      <input type="button" id="btnConnect" value="Connect" />
+      <input type="button" id="btnRegister" value="Register Name" />
+      <input type="button" id="btnCreate" value="Create Game" />
+      <input type="button" id="btnStart" value="Start Game" />
+      <input type="button" id="btnJoin" value="Join Game" />
+      <input type="button" id="btnLeave" value="Leave Game" />
+      <!--<input type="text" id="txtText" class="input" />
+      <input type="button" id="btnSend" value="Send" />-->
+      <input type="button" id="btnDisconnect" value="Disconnect" />
+    </form>
+    <div id="log" class="log"></div>
+  </body>
 </html>
