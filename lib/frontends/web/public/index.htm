@@ -17,10 +17,11 @@
       .playingarea, #piles, #pass, #hand, #wildColor, #pass, #colorchooser { display: none; }
       #hand img, #draw, #discard, #pass, #wildColor, #colorchooser, #colorchooser div, .player { float: left; }
 
+      .cardcount { display: inline; visibility: hidden; background-color: black; color: white; padding: 5px; margin-left: 5px; }
       #piles { text-align: center; margin-left: auto; margin-right: auto; }
       #draw img { border: 1px solid black; }
-      #colorchooser { border: 1px solid #999999; }
-      #wildColor, #colorchooser div { width: 40px, height: 40px, border: 1px solid black; }
+      #colorchooser, #piles { white-space: nowrap; }
+      #wildColor, #colorchooser div { width: 90px; height: 80px; border: 1px solid black; }
       #pass { cursor: pointer; padding: 30px; border: 2px solid black; background-color: #CCCCCC; color: black; }
 
       .wildColor0 { background-color: blue; }
@@ -30,7 +31,7 @@
 
       #players { margin-bottom: 20px; }
 
-      .player { border: 1px solid black; padding: 10px; margin: 10px; }
+      .player { border: 1px solid black; padding: 10px; margin: 10px; white-sapce: nowrap; }
       .owner { border: 3px solid blue; }
       .turn { border: 3px solid green; }
     </style>
@@ -40,6 +41,7 @@
     <div class="playingarea">
       <div id="players"></div>
       <div id="piles">
+        <hr style="clear: both" />
         <div id="draw"><img src="images/back.png" /></div>
         <div id="discard"><img /></div>
         <div id="wildColor">&nbsp;</div>
