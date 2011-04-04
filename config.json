@@ -1,0 +1,4 @@
+{
+  "frontends": ["web", "irc"],
+  "infoPort": 8001
+}
