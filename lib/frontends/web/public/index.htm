@@ -1,6 +1,6 @@
 <html>
   <head>
-    <title>Youknow</title>
+    <title>youknow</title>
     <script type="text/javascript" src="flashws.js"></script>
     <script type="text/javascript" src="transport.js"></script>
     <script type="text/javascript" src="http://ajax.googleapis.com/ajax/libs/jquery/1.5.2/jquery.min.js"></script>
@@ -9,13 +9,34 @@
       var address = '127.0.0.1:8000';
     </script>
     <script type="text/javascript" src="game.js"></script>
+<!--[if IE 6]>
+    <style type="text/css">
+      /* `position: fixed` fix for IE6 */
+      * {
+        margin: 0;
+      }
+      html, body {
+        height: 100%;
+        overflow: auto;
+      }
+      .wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
+        overflow: auto;
+      }
+      * html #sidebar { 
+        position: absolute;
+      }
+    </style>
+<![endif]-->
     <style type="text/css">
       input { margin-right: 15px; }
       .input, .log { border: 1px solid black; }
       .log { padding: 10px; margin-bottom: 30px; }
 
       .button {
-        padding: 5px 10px;
+        padding: 10px 20px; /*5px 10px;*/
         display: block;
         background: #777 url(images/button.png) repeat-x bottom;
         text-decoration: none;
@@ -35,105 +56,90 @@
         background-position: 0 top;
         position: relative;
         top: 1px;
-        padding: 6px 10px 4px;
+        padding: 12px 20px 8px; /*6px 10px 4px;*/
       }
       .simplemodal-overlay { background-color: black; }
 
       body { background-color: #3399FF; color: white; }
 
-      .playingarea, #piles, #hand, #players, #wildColor { clear: both; }
+      .playingarea, #piles, #hand, #players{ clear: both; }
       .playingarea, #piles, #pass, #hand, #colorchooser, #showWC { display: none; }
-      #hand img, #draw, #discard, #colorchooser, #colorchooser div, .player, #sidebar, #gamearea { float: left; }
+      #hand img, #draw, #discard, #colorchooser, #colorchooser div, .player, #showWC, #wildColor { float: left; }
 
       .cardcount { visibility: hidden; white-space: nowrap; text-align: center; font-weight: normal; }
       .cardcount img { vertical-align: middle; }
       #piles { text-align: center; margin-left: auto; margin-right: auto; }
       #colorchooser, #piles { white-space: nowrap; }
-      #wildColor, #colorchooser div { width: 90px; height: 80px; border: 1px solid black; }
-      #pass { text-align: center; margin: 10px 10px 0 10px; }
+      #wildColor, #colorchooser div { width: 90px; height: 48px; border: 1px solid black; }
+      #pass { text-align: center; margin: 5px 10px 0 10px; }
 
       .wildColor0 { background-color: blue; }
       .wildColor1 { background-color: green; }
       .wildColor2 { background-color: red; }
       .wildColor3 { background-color: yellow; }
 
-      #sidebar {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0;
-        width: 100px;
-        overflow: auto;
-        border-right: 2px solid white;
-
-        /* IE fix -- yuck */
-        height: expression(document.body.clientHeight + "px");
-      }
-      #gamearea {
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 115px;
-        right: 0;
-        overflow: auto;
-
-        /* IE fix -- yuck */
-        height: expression(document.body.clientHeight + "px");
-      }
+      #sidebar { z-index: 1000; border: 1px solid black; position: fixed; top: 0; left: 0; width: 100%; height: 50px; background-color: #3399FF; }
+      #gamearea { margin-top: 55px; }
+      #showWC { white-space: nowrap; }
 
       .center { display: block; margin-left: auto; margin-right: auto; }
       .txtCenter { text-align: center; }
-      #me { padding: 10px; margin-bottom: 10px; }
 
       img { border: 0; }
 
       .player { padding: 10px; margin: 10px; white-space: nowrap; text-align: center; font-weight: bold; }
+      .me { text-decoration: underline; }
       .owner { background: url(images/owner.png) no-repeat left top; }
       .turn { border: 3px solid white; }
     </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=no" />
   </head>
   <body>
     <div id="sidebar">
-      <div style="padding: 5px;">
-        <div id="me" class="txtCenter"><img src="images/player.png" />You</div>
-      </div>
-      <div id="myscore" class="txtCenter">Score: 0</div>
-      <div id="dir" class="txtCenter" style="font-size: 30pt; cursor: default;" title="Gameplay direction">&rarr;</div>
-      <div id="showWC">
-        <div class="txtCenter">Wild Color</div>
-        <div class="center" id="wildColor">&nbsp;</div>
-      </div>
-      <a href="#" id="pass" class="button">Pass</a>
-    </div>
-    <div id="gamearea">
-      <div id="status"></div>
-      <div class="playingarea" style="display: block;">
-        <div id="players"></div>
-        <div id="piles">
-          <div style="width: 100%; background-color: white; height: 1px; margin-bottom: 10px;"></div>
-          <div id="draw"><img src="images/back.png" /></div>
-          <div id="discard"><img /></div>
+      <div style="float: left; white-space: nowrap;">
+        <div style="float: left; line-height: 50px; margin: 0 10px;">
+          My Score: <span id="myscore">0</span>
         </div>
-        <div id="hand"></div>
+        <div id="dir" style="float: left; font-size: 30pt; cursor: default;" title="Gameplay direction">&rarr;</div>
       </div>
-      <hr style="clear: both" />
-      <form id="ui" onsubmit="return false">
-        <input type="button" id="btnConnect" value="Connect" />
-        <input type="button" id="btnRegister" value="Register Name" />
-        <input type="button" id="btnCreate" value="Create Game" />
-        <input type="button" id="btnStart" value="Start Game" />
-        <input type="button" id="btnJoin" value="Join Game" />
-        <input type="button" id="btnLeave" value="Leave Game" />
-        <input type="button" id="btnDisconnect" value="Disconnect" />
-      </form>
-      <div id="log" class="log"></div>
+      <div style="float: left;">
+        <a href="#" id="pass" class="button">Pass</a>
+      </div>
+      <div id="showWC">
+        <div style="float: left; line-height: 50px; margin: 0 10px;">Wild Color: </div><div id="wildColor">&nbsp;</div>
+      </div>
     </div>
-    <div id="colorchooser">
-      <p class="txtCenter">Choose a color for your Wild card:</p>
-      <div class="wildColor0">&nbsp;</div>
-      <div class="wildColor1">&nbsp;</div>
-      <div class="wildColor2">&nbsp;</div>
-      <div class="wildColor3">&nbsp;</div>
+    <div class="wrapper">
+      <div id="gamearea">
+        <div id="status"></div>
+        <div class="playingarea" style="display: block;">
+          <div id="players"></div>
+          <div id="piles">
+            <div style="width: 100%; background-color: white; height: 1px; margin-bottom: 10px;"></div>
+            <div id="draw"><img src="images/back.png" /></div>
+            <div id="discard"><img /></div>
+          </div>
+          <div id="hand"></div>
+        </div>
+        <hr style="clear: both" />
+        <form id="ui" onsubmit="return false">
+          <input type="button" id="btnConnect" value="Connect" />
+          <input type="button" id="btnRegister" value="Register Name" />
+          <input type="button" id="btnCreate" value="Create Game" />
+          <input type="button" id="btnStart" value="Start Game" />
+          <input type="button" id="btnJoin" value="Join Game" />
+          <input type="button" id="btnLeave" value="Leave Game" />
+          <input type="button" id="btnDisconnect" value="Disconnect" />
+        </form>
+        <div id="log" class="log"></div>
+      </div>
+      <div id="colorchooser">
+        <p class="txtCenter">Choose a color for your Wild card:</p>
+        <div class="wildColor0">&nbsp;</div>
+        <div class="wildColor1">&nbsp;</div>
+        <div class="wildColor2">&nbsp;</div>
+        <div class="wildColor3">&nbsp;</div>
+      </div>
     </div>
   </body>
 </html>
