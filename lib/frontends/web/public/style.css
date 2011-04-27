@@ -2,30 +2,6 @@ input { margin-right: 15px; }
 .input, .log { border: 1px solid black; }
 .log { padding: 10px; margin-bottom: 30px; }
 
-.button {
-  padding: 10px 20px; /*5px 10px;*/
-  display: block;
-  background: #777 url(images/button.png) repeat-x bottom;
-  text-decoration: none;
-  border: none;
-  color: #fff;
-  cursor: pointer;
-  font-weight: bold;
-  border-radius: 5px;
-  -moz-border-radius: 5px;
-  -webkit-border-radius: 5px;
-  text-shadow: 1px 1px #666;
-}
-.button:hover {
-  background-position: 0 -48px;
-}
-.button:active {
-  background-position: 0 top;
-  position: relative;
-  top: 1px;
-  padding: 12px 20px 8px; /*6px 10px 4px;*/
-}
-
 .simplemodal-overlay { background-color: black; }
 
 body { background-color: #3399FF; color: white; }
