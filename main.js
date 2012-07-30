@@ -1,7 +1,8 @@
 // youknow backend main entry point
 
-var fs = require('fs'), http = require('http'),
-    LOG = require('./lib/common').LOG,
+var fs = require('fs'),
+    http = require('http');
+var LOG = require('./lib/common').LOG,
     manager = new (require('./lib/manager'))();
 
 var config, frontends, files = {};
@@ -80,12 +81,12 @@ var fuzzyDate = (function(){
   return fuzzyTime;
 }());
 
-config = JSON.parse(fs.readFileSync(__dirname + '/config.json', 'utf8'));
-files['main_begin'] = fs.readFileSync(__dirname + '/html/main_begin.htm');
-files['main_end'] = fs.readFileSync(__dirname + '/html/main_end.htm');
-files['info_begin'] = fs.readFileSync(__dirname + '/html/info_begin.htm');
-files['info_end'] = fs.readFileSync(__dirname + '/html/info_end.htm');
-files['owner'] = fs.readFileSync(__dirname + '/images/owner.png');
+config = JSON.parse(fs.readFileSync('config.json', 'utf8'));
+files['main_begin'] = fs.readFileSync('html/main_begin.htm');
+files['main_end'] = fs.readFileSync('html/main_end.htm');
+files['info_begin'] = fs.readFileSync('html/info_begin.htm');
+files['info_end'] = fs.readFileSync('html/info_end.htm');
+files['owner'] = fs.readFileSync('images/owner.png');
 
 frontends = config.frontends;
 if (!frontends || !Array.isArray(frontends) || frontends.length === 0)
@@ -96,7 +97,7 @@ if (!config.infoPort || typeof config.infoPort !== 'number')
 /* Initialize all enabled frontends */
 for (var i=0; i<frontends.length; i++) {
   (function(name) {
-    files['icon_' + name] = fs.readFileSync(__dirname + '/lib/frontends/' + name + '/icon.png');
+    files['icon_' + name] = fs.readFileSync('lib/frontends/' + name + '/icon.png');
     frontends[i] = new (require('./lib/frontends/' + name))(manager, function(msg, level) {
       if (level === LOG.ERROR)
         console.error(name.toUpperCase() + ' :: ERROR :: ' + msg);
